@@ -1,0 +1,85 @@
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+from ta.momentum import RSIIndicator
+from datetime import datetime
+
+# ETF LIST
+etfs = [
+    "NIFTYBEES.NS",
+    "BANKBEES.NS",
+    "GOLDBEES.NS",
+    "SILVERBEES.NS",
+    "ITBEES.NS",
+    "CPSEETF.NS",
+    "AUTOBEES.NS",
+    "PSUBNKBEES.NS",
+    "ICICIB22.NS",
+    "SETFNIF50.NS"
+]
+
+results = []
+
+for etf in etfs:
+    try:
+        data = yf.download(etf, period="3mo", interval="1d", progress=False)
+
+        close_prices = data['Close']
+
+        rsi = RSIIndicator(close_prices).rsi()
+
+        latest_price = round(close_prices.iloc[-1], 2)
+        latest_rsi = round(rsi.iloc[-1], 2)
+
+        # SIGNAL
+        if latest_rsi < 30:
+            signal = "STRONG BUY"
+        elif latest_rsi < 40:
+            signal = "BUY ZONE"
+        elif latest_rsi < 50:
+            signal = "WATCH"
+        else:
+            signal = "AVOID"
+
+        results.append({
+            "ETF": etf.replace(".NS", ""),
+            "Price": latest_price,
+            "RSI": latest_rsi,
+            "Signal": signal
+        })
+
+    except:
+        pass
+
+df = pd.DataFrame(results)
+
+# RANKING
+df = df.sort_values(by="RSI")
+
+# WEBSITE DESIGN
+st.set_page_config(page_title="ETF RSI Scanner", layout="wide")
+
+st.title("📈 NSE ETF RSI Scanner")
+st.write("Low RSI Buying Opportunity Scanner")
+
+refresh_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+st.write(f"Last Refresh: {refresh_time}")
+
+# COLORS
+def color_signal(val):
+    if val == "STRONG BUY":
+        return "background-color: green; color: white;"
+    elif val == "BUY ZONE":
+        return "background-color: lightgreen;"
+    elif val == "WATCH":
+        return "background-color: yellow;"
+    else:
+        return "background-color: pink;"
+
+styled_df = df.style.applymap(color_signal, subset=['Signal'])
+
+st.dataframe(styled_df, use_container_width=True)
+
+# REFRESH BUTTON
+if st.button("🔄 Refresh Scanner"):
+    st.rerun()
