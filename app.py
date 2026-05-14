@@ -22,7 +22,13 @@ results = []
 
 for etf in etfs:
     try:
-        data = yf.download(etf, period="3mo", interval="1d", progress=False)
+        data = yf.download(
+    etf,
+    period="3mo",
+    interval="1d",
+    auto_adjust=True,
+    progress=False
+)
 
         close_prices = data['Close']
 
@@ -52,6 +58,43 @@ for etf in etfs:
         pass
 
 df = pd.DataFrame(results)
+
+# CHECK IF DATA EXISTS
+if not df.empty and "RSI" in df.columns:
+
+    # SORT BY RSI
+    df = df.sort_values(by="RSI")
+
+    # WEBSITE DESIGN
+    st.set_page_config(page_title="ETF RSI Scanner", layout="wide")
+
+    st.title("📈 NSE ETF RSI Scanner")
+    st.write("Low RSI Buying Opportunity Scanner")
+
+    refresh_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    st.write(f"Last Refresh: {refresh_time}")
+
+    # COLORS
+    def color_signal(val):
+        if val == "STRONG BUY":
+            return "background-color: green; color: white;"
+        elif val == "BUY ZONE":
+            return "background-color: lightgreen;"
+        elif val == "WATCH":
+            return "background-color: yellow;"
+        else:
+            return "background-color: pink;"
+
+    styled_df = df.style.applymap(color_signal, subset=['Signal'])
+
+    st.dataframe(styled_df, use_container_width=True)
+
+    # REFRESH BUTTON
+    if st.button("🔄 Refresh Scanner"):
+        st.rerun()
+
+else:
+    st.error("ETF data not loaded. Please refresh again later.")
 
 # RANKING
 df = df.sort_values(by="RSI")
