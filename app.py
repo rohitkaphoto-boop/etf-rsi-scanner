@@ -106,7 +106,10 @@ if not df.empty:
             return "background-color: pink;"
 
     # STYLE
-    styled_df = df.style.applymap(
+  st.dataframe(
+    df,
+    use_container_width=True
+)
         color_signal,
         subset=["Signal"]
     )
