@@ -4,6 +4,12 @@ import pandas as pd
 from ta.momentum import RSIIndicator
 from datetime import datetime
 
+# PAGE SETTING
+st.set_page_config(page_title="ETF RSI Scanner", layout="wide")
+
+st.title("📈 NSE ETF RSI Scanner")
+st.write("Low RSI Buying Opportunity Scanner")
+
 # ETF LIST
 etfs = [
     "NIFTYBEES.NS",
@@ -20,24 +26,31 @@ etfs = [
 
 results = []
 
+# DOWNLOAD DATA
 for etf in etfs:
+
     try:
         data = yf.download(
-    etf,
-    period="3mo",
-    interval="1d",
-    auto_adjust=True,
-    progress=False
-)
+            etf,
+            period="3mo",
+            interval="1d",
+            auto_adjust=True,
+            progress=False
+        )
+
+        # SKIP EMPTY DATA
+        if data.empty:
+            continue
 
         close_prices = data['Close']
 
+        # RSI CALCULATION
         rsi = RSIIndicator(close_prices).rsi()
 
-        latest_price = round(close_prices.iloc[-1], 2)
-        latest_rsi = round(rsi.iloc[-1], 2)
+        latest_price = round(float(close_prices.iloc[-1]), 2)
+        latest_rsi = round(float(rsi.iloc[-1]), 2)
 
-        # SIGNAL
+        # SIGNALS
         if latest_rsi < 30:
             signal = "STRONG BUY"
         elif latest_rsi < 40:
@@ -54,40 +67,48 @@ for etf in etfs:
             "Signal": signal
         })
 
-    except:
-        pass
+    except Exception as e:
+        st.warning(f"Error loading {etf}")
 
+# CREATE DATAFRAME
 df = pd.DataFrame(results)
 
 # CHECK IF DATA EXISTS
-if not df.empty and "RSI" in df.columns:
+if len(df) > 0:
 
-    # SORT BY RSI
+    # SORT
     df = df.sort_values(by="RSI")
 
-    # WEBSITE DESIGN
-    st.set_page_config(page_title="ETF RSI Scanner", layout="wide")
-
-    st.title("📈 NSE ETF RSI Scanner")
-    st.write("Low RSI Buying Opportunity Scanner")
-
+    # REFRESH TIME
     refresh_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     st.write(f"Last Refresh: {refresh_time}")
 
-    # COLORS
+    # COLOR FUNCTION
     def color_signal(val):
+
         if val == "STRONG BUY":
             return "background-color: green; color: white;"
+
         elif val == "BUY ZONE":
             return "background-color: lightgreen;"
+
         elif val == "WATCH":
             return "background-color: yellow;"
+
         else:
             return "background-color: pink;"
 
-    styled_df = df.style.applymap(color_signal, subset=['Signal'])
+    # APPLY COLORS
+    styled_df = df.style.applymap(
+        color_signal,
+        subset=['Signal']
+    )
 
-    st.dataframe(styled_df, use_container_width=True)
+    # SHOW TABLE
+    st.dataframe(
+        styled_df,
+        use_container_width=True
+    )
 
     # REFRESH BUTTON
     if st.button("🔄 Refresh Scanner"):
@@ -95,34 +116,3 @@ if not df.empty and "RSI" in df.columns:
 
 else:
     st.error("ETF data not loaded. Please refresh again later.")
-
-# RANKING
-df = df.sort_values(by="RSI")
-
-# WEBSITE DESIGN
-st.set_page_config(page_title="ETF RSI Scanner", layout="wide")
-
-st.title("📈 NSE ETF RSI Scanner")
-st.write("Low RSI Buying Opportunity Scanner")
-
-refresh_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-st.write(f"Last Refresh: {refresh_time}")
-
-# COLORS
-def color_signal(val):
-    if val == "STRONG BUY":
-        return "background-color: green; color: white;"
-    elif val == "BUY ZONE":
-        return "background-color: lightgreen;"
-    elif val == "WATCH":
-        return "background-color: yellow;"
-    else:
-        return "background-color: pink;"
-
-styled_df = df.style.applymap(color_signal, subset=['Signal'])
-
-st.dataframe(styled_df, use_container_width=True)
-
-# REFRESH BUTTON
-if st.button("🔄 Refresh Scanner"):
-    st.rerun()
