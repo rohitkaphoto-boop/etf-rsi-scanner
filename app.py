@@ -109,7 +109,7 @@ if not df.empty:
   st.dataframe(
     df,
     use_container_width=True
-)
+
         color_signal,
         subset=["Signal"]
     )
